@@ -1,0 +1,1597 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>カードバトル</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet" />
+    <style>
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
+
+      :root {
+        --bg: #f4efe4;
+        --bg-panel: #fffdf6;
+        --bg-panel-2: #efe7d3;
+        --ink: #2b2118;
+        --ink-soft: #6d5f4c;
+        --line: #d8cbae;
+        --accent: #c8501b;
+        --accent-ink: #ffffff;
+        --gold: #b8860b;
+        --good: #2e7d46;
+        --bad: #c22f2f;
+        --energy: #1f7a8c;
+        --shield: #4a6fa5;
+        --shadow: 0 10px 24px rgba(80, 58, 20, .16);
+        --felt: #33654a;
+        --felt-dark: #274e39;
+        --card-bg: #fffdf6;
+        color-scheme: light dark;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #17140f;
+          --bg-panel: #241f16;
+          --bg-panel-2: #2e2718;
+          --ink: #f2e9d8;
+          --ink-soft: #b8a888;
+          --line: #4a3f28;
+          --accent: #e0682a;
+          --gold: #d9a83c;
+          --good: #5cb87a;
+          --bad: #e05c5c;
+          --energy: #3fa8bf;
+          --shield: #7d9cc9;
+          --shadow: 0 10px 24px rgba(0,0,0,.45);
+          --felt: #1e4630;
+          --felt-dark: #143322;
+          --card-bg: #2a2417;
+        }
+      }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        -webkit-tap-highlight-color: transparent;
+      }
+      .wrap { max-width: 880px; margin: 0 auto; padding: 14px 14px 40px; }
+
+      h1 { font-size: 1.55rem; margin: 6px 0 4px; font-weight: 800; letter-spacing: .02em; }
+      h2 { font-size: 1.1rem; margin: 0 0 8px; font-weight: 800; }
+      p { line-height: 1.65; }
+      .lead { color: var(--ink-soft); margin: 0 0 14px; font-size: .95rem; }
+
+      /* ---------- mode select ---------- */
+      .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 560px) { .mode-grid { grid-template-columns: 1fr; } }
+      .mode-card {
+        text-align: left; cursor: pointer; border: 2px solid var(--line);
+        background: var(--bg-panel); border-radius: 14px; padding: 16px;
+        font: inherit; color: inherit; width: 100%;
+      }
+      .mode-card:hover, .mode-card:focus-visible { border-color: var(--accent); outline: none; }
+      .mode-card .mc-title { font-size: 1.15rem; font-weight: 800; display: block; margin-bottom: 4px; }
+      .mode-card .mc-desc { color: var(--ink-soft); font-size: .88rem; line-height: 1.55; display: block; }
+      .mode-card .mc-badge {
+        display: inline-block; font-size: .72rem; font-weight: 800; padding: 2px 8px;
+        border-radius: 999px; background: var(--bg-panel-2); color: var(--ink-soft); margin-bottom: 8px;
+      }
+      .diff-row { display: flex; gap: 8px; align-items: center; margin: 16px 0 4px; flex-wrap: wrap; }
+      .diff-row .lbl { font-weight: 800; font-size: .9rem; }
+      .chip-btn {
+        cursor: pointer; font: inherit; font-weight: 700; font-size: .88rem;
+        border: 2px solid var(--line); background: var(--bg-panel); color: var(--ink);
+        border-radius: 999px; padding: 6px 16px;
+      }
+      .chip-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+
+      .rules-box {
+        margin-top: 18px; background: var(--bg-panel); border: 1px solid var(--line);
+        border-radius: 14px; padding: 14px 16px;
+      }
+      .rules-box ul { margin: 6px 0 0; padding-left: 1.2em; line-height: 1.8; font-size: .92rem; }
+      .rules-box li::marker { color: var(--accent); }
+
+      /* ---------- arena ---------- */
+      .arena {
+        background: linear-gradient(180deg, var(--felt), var(--felt-dark));
+        border-radius: 18px; padding: 12px; box-shadow: var(--shadow);
+        position: relative; overflow: hidden;
+      }
+      .fighter {
+        background: var(--bg-panel); border-radius: 12px; padding: 10px 12px;
+        border: 2px solid transparent; position: relative;
+      }
+      .fighter.active { border-color: var(--gold); }
+      .fighter .f-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+      .fighter .f-name { font-weight: 800; font-size: 1.02rem; }
+      .fighter .f-tag { font-size: .72rem; font-weight: 800; color: var(--ink-soft); }
+      .fighter .f-status { margin-left: auto; display: flex; gap: 6px; align-items: center; font-size: .8rem; font-weight: 700; }
+      .badge-shield { color: var(--shield); }
+      .badge-poison { color: var(--good); }
+      .hpbar { height: 16px; background: var(--bg-panel-2); border-radius: 999px; overflow: hidden; margin-top: 6px; border: 1px solid var(--line); }
+      .hpbar > div { height: 100%; background: var(--good); border-radius: 999px; transition: width .45s ease; }
+      .hpbar.low > div { background: var(--bad); }
+      .hp-text { font-size: .82rem; font-weight: 800; margin-top: 3px; }
+      .hp-text .deck-count { color: var(--ink-soft); font-weight: 700; float: right; }
+
+      .mid-row { display: flex; align-items: stretch; gap: 10px; margin: 10px 0; }
+      .field {
+        flex: 1; min-height: 74px; border: 1.5px dashed rgba(255,255,255,.45); border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; padding: 8px; text-align: center;
+        color: #fdf6e3; font-weight: 700; font-size: .9rem; line-height: 1.5;
+      }
+      .field .last-play b { font-size: 1rem; }
+      .field .last-play span { display: block; font-size: .8rem; opacity: .85; font-weight: 500; }
+      .turn-box {
+        background: rgba(0,0,0,.28); color: #fdf6e3; border-radius: 12px; padding: 8px 10px;
+        text-align: center; min-width: 86px; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+      }
+      .turn-box .t-num { font-size: .72rem; opacity: .85; font-weight: 700; }
+      .turn-box .t-who { font-weight: 800; font-size: .92rem; }
+
+      .energy-row { display: flex; align-items: center; gap: 8px; margin: 8px 2px 2px; color: #fdf6e3; }
+      .energy-row .e-lbl { font-weight: 800; font-size: .85rem; }
+      .crystals { display: flex; gap: 3px; flex-wrap: wrap; }
+      .crystal { width: 15px; height: 15px; transform: rotate(45deg); border-radius: 3px; background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.5); }
+      .crystal.on { background: var(--energy); border-color: #bfeef7; box-shadow: 0 0 6px rgba(63,168,191,.8); }
+      .energy-row .e-num { font-weight: 800; font-size: .9rem; }
+
+      /* ---------- hand ---------- */
+      .hand {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+        gap: 9px; margin-top: 10px;
+      }
+      @media (max-width: 560px) { .hand { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); } }
+      .bcard {
+        --el: #888;
+        font: inherit; text-align: left; cursor: pointer; color: var(--ink);
+        background: var(--card-bg); border: 2px solid var(--line); border-top: 6px solid var(--el);
+        border-radius: 10px; padding: 8px 9px 9px; min-height: 128px;
+        display: flex; flex-direction: column; gap: 4px; position: relative;
+        transition: transform .12s ease, border-color .12s ease;
+      }
+      .bcard:hover:not(:disabled), .bcard:focus-visible:not(:disabled) { transform: translateY(-4px); border-color: var(--el); outline: none; }
+      .bcard:disabled { opacity: .48; cursor: not-allowed; }
+      .bcard .c-top { display: flex; justify-content: space-between; align-items: center; }
+      .cost {
+        width: 26px; height: 26px; border-radius: 50%; background: var(--energy); color: #fff;
+        font-weight: 800; font-size: .9rem; display: inline-flex; align-items: center; justify-content: center;
+        border: 2px solid rgba(255,255,255,.65); flex: none;
+      }
+      .el-chip { font-size: .7rem; font-weight: 800; color: var(--el); border: 1.5px solid var(--el); border-radius: 999px; padding: 1px 7px; }
+      .bcard .c-glyph {
+        align-self: center; width: 40px; height: 40px; border-radius: 50%;
+        background: var(--el); color: #fff; font-size: 1.25rem; font-weight: 800;
+        display: flex; align-items: center; justify-content: center; margin: 2px 0;
+      }
+      .bcard .c-name { font-weight: 800; font-size: .9rem; line-height: 1.3; }
+      .bcard .c-text { font-size: .74rem; color: var(--ink-soft); line-height: 1.45; flex: 1; }
+      .bcard .c-stats { display: flex; gap: 4px; flex-wrap: wrap; }
+      .stat { font-size: .7rem; font-weight: 800; background: var(--bg-panel-2); border-radius: 6px; padding: 2px 6px; }
+      .stat.dmg { color: var(--bad); } .stat.heal { color: var(--good); } .stat.sh { color: var(--shield); }
+
+      .opp-hand { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+      .cardback {
+        width: 22px; height: 32px; border-radius: 4px; flex: none;
+        background: repeating-linear-gradient(45deg, #7a4a21, #7a4a21 4px, #96602c 4px, #96602c 8px);
+        border: 1.5px solid #5d3a18;
+      }
+
+      .controls { display: flex; gap: 9px; margin-top: 12px; flex-wrap: wrap; }
+      .btn {
+        font: inherit; font-weight: 800; cursor: pointer; border-radius: 10px;
+        border: 2px solid var(--line); background: var(--bg-panel); color: var(--ink);
+        padding: 9px 18px; font-size: .95rem;
+      }
+      .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); flex: 1; min-width: 170px; }
+      .btn:disabled { opacity: .5; cursor: not-allowed; }
+      .btn.small { padding: 6px 12px; font-size: .82rem; }
+
+      .log {
+        margin-top: 12px; background: var(--bg-panel); border: 1px solid var(--line);
+        border-radius: 12px; padding: 10px 14px; max-height: 168px; overflow-y: auto;
+      }
+      .log h2 { font-size: .85rem; color: var(--ink-soft); }
+      .log ul { margin: 0; padding: 0; list-style: none; font-size: .86rem; line-height: 1.7; }
+      .log li.turn-mark { font-weight: 800; color: var(--accent); margin-top: 4px; }
+
+      /* ---------- overlays ---------- */
+      .overlay {
+        position: fixed; inset: 0; background: rgba(16, 12, 6, .78);
+        display: none; align-items: center; justify-content: center; z-index: 40; padding: 18px;
+      }
+      .overlay.show { display: flex; }
+      .sheet {
+        background: var(--bg-panel); color: var(--ink); border-radius: 16px; padding: 26px 22px;
+        max-width: 420px; width: 100%; text-align: center; box-shadow: var(--shadow);
+        max-height: 88vh; overflow-y: auto;
+      }
+      .sheet h2 { font-size: 1.3rem; margin-bottom: 6px; }
+      .sheet p { color: var(--ink-soft); font-size: .92rem; }
+      .sheet .big-hand { font-size: 2.2rem; font-weight: 800; color: var(--accent); margin: 8px 0 2px; }
+      .sheet .btn { width: 100%; margin-top: 10px; }
+      .sheet .btn.primary { flex: none; }
+      .sheet ul { text-align: left; line-height: 1.8; font-size: .9rem; padding-left: 1.2em; }
+      .winner-name { font-size: 1.7rem; font-weight: 800; color: var(--accent); margin: 4px 0; }
+
+      .float-num {
+        position: absolute; font-weight: 800; font-size: 1.3rem; pointer-events: none;
+        animation: floatUp 1s ease-out forwards; z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,.35);
+      }
+      .float-num.dmg { color: #ff5a4e; } .float-num.heal { color: #57d977; } .float-num.sh { color: #9db9e8; }
+      @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-42px); } }
+      @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+      .shake { animation: shake .3s ease; }
+      @keyframes playIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+      .play-in { animation: playIn .25s ease; }
+
+      /* ---------- editor ---------- */
+      .editor-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+      .editor-head h1 { margin-right:auto; }
+      .editor-toolbar { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+      .editor-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; margin-top:12px; }
+      .edit-card { background:var(--bg-panel); border:1.5px solid var(--line); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+      .edit-card.is-custom { border-color:var(--gold); }
+      .edit-card .ec-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+      .edit-card .ec-name { font-weight:800; font-size:1rem; line-height:1.3; }
+      .edit-card .ec-meta { font-size:.78rem; color:var(--ink-soft); line-height:1.5; }
+      .edit-card .ec-preview { pointer-events:none; }
+      .deck-ctrl { display:flex; align-items:center; gap:8px; background:var(--bg-panel-2); border-radius:10px; padding:6px 8px; }
+      .deck-ctrl .dc-lbl { font-size:.8rem; font-weight:800; margin-right:auto; }
+      .deck-ctrl button { width:32px; height:32px; border-radius:999px; border:1.5px solid var(--line); background:var(--bg-panel); font-weight:800; cursor:pointer; font-size:1rem; line-height:1; }
+      .deck-ctrl .dc-num { font-weight:800; min-width:28px; text-align:center; }
+      .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:left; }
+      @media (max-width:560px){ .form-grid{ grid-template-columns:1fr; } }
+      .field label { display:block; font-size:.78rem; font-weight:800; margin-bottom:4px; color:var(--ink-soft); }
+      .field input, .field select, .field textarea { width:100%; font:inherit; font-size:.95rem; padding:9px 10px; border:1.5px solid var(--line); border-radius:10px; background:var(--bg); color:var(--ink); }
+      .field textarea { resize:vertical; min-height:64px; }
+      .field.full { grid-column:1 / -1; }
+      .toggle-row { display:flex; gap:8px; }
+      .toggle-row button { flex:1; }
+      .deck-total { font-weight:800; background:var(--bg-panel); border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:.85rem; }
+
+      /* ---------- online ---------- */
+      .online-box {
+        background: var(--bg-panel); border: 1px solid var(--line);
+        border-radius: 14px; padding: 16px; margin-top: 14px;
+      }
+      .online-box h2 { margin-bottom: 6px; }
+      .online-box .field { margin-bottom: 10px; }
+      .room-code-big {
+        font-size: 2.4rem; font-weight: 800; letter-spacing: .35em; text-align: center;
+        color: var(--accent); margin: 10px 0 4px;
+      }
+      .toast {
+        position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+        background: var(--ink); color: var(--bg); font-weight: 700; font-size: .9rem;
+        padding: 10px 18px; border-radius: 999px; box-shadow: var(--shadow);
+        z-index: 60; max-width: 92vw; text-align: center;
+      }
+      .conn-note { font-size: .82rem; font-weight: 700; color: var(--ink-soft); margin-top: 8px; }
+
+      .hidden { display: none !important; }
+      .note { font-size: .8rem; color: var(--ink-soft); margin-top: 10px; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .float-num, .shake, .play-in, .bcard { animation: none !important; transition: none !important; }
+        .hpbar > div { transition: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+
+      <!-- ===== モード選択 ===== -->
+      <section id="screen-mode">
+        <h1>カードバトル</h1>
+        <p class="lead">オリジナルカードで殴り合う、シンプルで熱い対戦ゲーム。相手のHPを0にしたら勝ち。カードを出すにはエネルギーが必要で、ターンを重ねるほど強いカードが出せるようになるよ。</p>
+
+        <div class="mode-grid">
+          <button type="button" class="mode-card" id="btn-mode-cpu">
+            <span class="mc-badge">1人プレイ</span>
+            <span class="mc-title">CPU対戦</span>
+            <span class="mc-desc">コンピューターと対戦。思いついたときにサクッと1試合。CPUは手加減なしで殴ってくるので油断禁物。</span>
+          </button>
+          <button type="button" class="mode-card" id="btn-mode-2p">
+            <span class="mc-badge">2人プレイ</span>
+            <span class="mc-title">2人対戦（同じ端末）</span>
+            <span class="mc-desc">1台の端末を交互に渡して対戦。ターン交代のたびに受け渡し画面が入るので、相手の手札は見えない。</span>
+          </button>
+          <button type="button" class="mode-card" id="btn-mode-online">
+            <span class="mc-badge">オンライン</span>
+            <span class="mc-title">オンライン対戦</span>
+            <span class="mc-desc">離れた相手とネット越しに対戦。ルームを作って4文字コードを送るか、もらったコードで参加。判定はサーバーが行うので手札は相手に見えない。</span>
+          </button>
+        </div>
+
+        <div class="diff-row" id="diff-row">
+          <span class="lbl">CPUの強さ：</span>
+          <button type="button" class="chip-btn" id="diff-normal" aria-pressed="true">ふつう</button>
+          <button type="button" class="chip-btn" id="diff-hard" aria-pressed="false">つよい（HP+5・手札+1）</button>
+        </div>
+
+        <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <button type="button" class="btn primary" id="btn-open-editor" style="flex:none;">🃏 カードを編集する</button>
+          <span class="deck-total" id="deck-total-label">デッキ 32枚 ・ カード 16種</span>
+          <span style="font-size:.85rem; color:var(--ink-soft);">名前・コスト・効果・デッキ枚数を自由に変えられます</span>
+        </div>
+
+        <div class="rules-box">
+          <h2>ルール</h2>
+          <ul>
+            <li>お互いHP30・手札4枚でスタート。自分のターン開始時に1枚ドロー。</li>
+            <li>エネルギーは毎ターン全回復し、最大値が1ずつ増える（最大8）。カードはコスト分のエネルギーを払って出す。</li>
+            <li>攻撃は相手のシールドから先に削れる。「貫通」はシールドを無視してHPを直接削る。</li>
+            <li>毒は、毒を受けた側のターン開始時に2ダメージ（貫通）×2ターン。</li>
+            <li>山札が尽きたら捨て札をシャッフルして再利用。それもなければ引くたびに1ダメージ。</li>
+            <li>手札の上限は8枚。あふれたカードは捨て札になる。</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ===== カード編集画面 ===== -->
+      <section id="screen-editor" class="hidden">
+        <div class="editor-head">
+          <h1>カード編集</h1>
+          <button type="button" class="btn small" id="btn-editor-back">← モード選択に戻る</button>
+        </div>
+        <p class="lead">カードの名前や強さを変えると、次の対戦からそのまま反映されます。デッキに入れる枚数もここで調整できます。オリジナルカードの追加もOK。</p>
+
+        <div class="editor-toolbar">
+          <button type="button" class="btn primary" id="btn-add-card" style="flex:none;">＋ 新しいカードを作る</button>
+          <button type="button" class="btn" id="btn-export-cards">編集データをダウンロード</button>
+          <label class="btn" style="display:inline-flex; align-items:center; cursor:pointer;">データを読み込む<input type="file" id="file-import" accept=".json,application/json" style="display:none;"></label>
+          <button type="button" class="btn" id="btn-reset-cards">初期状態に戻す</button>
+          <span class="deck-total" id="deck-total-editor">デッキ 32枚</span>
+        </div>
+
+        <div id="editor-msg" style="font-size:.88rem; font-weight:700; color:var(--good); min-height:1.4em;"></div>
+        <div class="editor-grid" id="editor-grid"></div>
+
+        <div class="rules-box">
+          <h2>編集のコツ</h2>
+          <ul>
+            <li>コストは 0〜8。強い効果ほどコストを高くするとバランスが取れます。</li>
+            <li>効果は組み合わせ自由。例：攻撃5＋回復3＋ドロー1 のような複合カードも作れます。</li>
+            <li>デッキ枚数は 0〜4枚まで。0枚にするとそのカードは対戦で出てきません。</li>
+            <li>デッキ合計は 20〜40枚くらいがおすすめです（少なすぎると山札切れが早くなります）。</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ===== 対戦画面 ===== -->
+      <section id="screen-game" class="hidden">
+        <div class="arena" id="arena">
+          <div class="fighter" id="panel-top">
+            <div class="f-head">
+              <span class="f-name" id="top-name">相手</span>
+              <span class="f-tag" id="top-tag"></span>
+              <span class="f-status" id="top-status"></span>
+            </div>
+            <div class="hpbar" id="top-hpbar"><div id="top-hpfill" style="width:100%"></div></div>
+            <div class="hp-text"><span id="top-hptext"></span><span class="deck-count" id="top-deck"></span></div>
+            <div class="opp-hand" id="top-handbacks" aria-hidden="true"></div>
+          </div>
+
+          <div class="mid-row">
+            <div class="field" id="field"><span>バトル開始！</span></div>
+            <div class="turn-box">
+              <span class="t-num" id="turn-num">ターン 1</span>
+              <span class="t-who" id="turn-who">—</span>
+            </div>
+          </div>
+
+          <div class="fighter" id="panel-bottom">
+            <div class="f-head">
+              <span class="f-name" id="bottom-name">あなた</span>
+              <span class="f-tag" id="bottom-tag"></span>
+              <span class="f-status" id="bottom-status"></span>
+            </div>
+            <div class="hpbar" id="bottom-hpbar"><div id="bottom-hpfill" style="width:100%"></div></div>
+            <div class="hp-text"><span id="bottom-hptext"></span><span class="deck-count" id="bottom-deck"></span></div>
+          </div>
+
+          <div class="energy-row">
+            <span class="e-lbl">エネルギー</span>
+            <div class="crystals" id="crystals"></div>
+            <span class="e-num" id="energy-num"></span>
+          </div>
+
+          <div class="hand" id="hand"></div>
+
+          <div class="controls">
+            <button type="button" class="btn primary" id="btn-endturn">ターン終了</button>
+            <button type="button" class="btn" id="btn-rules2">ルール</button>
+            <button type="button" class="btn" id="btn-surrender">降参</button>
+          </div>
+        </div>
+
+        <div class="log" id="logbox">
+          <h2>バトルログ</h2>
+          <ul id="log"></ul>
+        </div>
+        <p class="note" id="mode-note"></p>
+      </section>
+
+      <!-- ===== オンライン：ロビー ===== -->
+      <section id="screen-online" class="hidden">
+        <div class="editor-head">
+          <h1>オンライン対戦</h1>
+          <button type="button" class="btn small" id="btn-online-back">← モード選択に戻る</button>
+        </div>
+        <p class="lead">ルームを作った人が4文字コードを相手に送り、相手がそのコードで参加すると対戦開始。判定はすべてサーバーが行い、手札は相手に見えません。オンライン対戦では、ルームを作った人（ホスト）のカードセット（カード編集の内容を含む）を、ふたりとも同じ内容で使って対戦します。</p>
+
+        <div class="online-box">
+          <div class="field"><label for="oname">あなたの名前</label><input id="oname" type="text" maxlength="12" placeholder="例：プレイヤー1"></div>
+          <button type="button" class="btn primary" id="btn-create-room" style="width:100%;">ルームを作る</button>
+          <p class="note">作ると4文字のルームコードが表示されます。それを対戦相手に送ってください。あなたが今使っているカードセット（カード編集の内容を含む）が、このルームの対戦に使われます。</p>
+        </div>
+
+        <div class="online-box">
+          <h2>コードで参加する</h2>
+          <div class="field"><label for="ocode">ルームコード（4文字）</label><input id="ocode" type="text" maxlength="4" placeholder="例：AB3K" style="text-transform:uppercase; letter-spacing:.3em; font-weight:800;"></div>
+          <button type="button" class="btn primary" id="btn-join-room" style="width:100%;">参加する</button>
+        </div>
+
+        <div class="online-box hidden" id="oreconnect-box">
+          <h2>前の対戦に戻る</h2>
+          <p class="note" style="margin-top:0;">回線が切れた対戦の続きに参加できます（ルーム <b id="oreconnect-code"></b>）。</p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" class="btn" id="btn-reconnect">再接続する</button>
+            <button type="button" class="btn" id="btn-forget-room">記録を消す</button>
+          </div>
+        </div>
+        <p class="conn-note" id="online-status"></p>
+      </section>
+
+      <!-- ===== オンライン：対戦画面 ===== -->
+      <section id="screen-obattle" class="hidden">
+        <div class="arena" id="oarena">
+          <div class="fighter" id="opanel-top">
+            <div class="f-head">
+              <span class="f-name" id="otop-name">相手</span>
+              <span class="f-tag" id="otop-tag"></span>
+              <span class="f-status" id="otop-status"></span>
+            </div>
+            <div class="hpbar" id="otop-hpbar"><div id="otop-hpfill" style="width:100%"></div></div>
+            <div class="hp-text"><span id="otop-hptext"></span><span class="deck-count" id="otop-deck"></span></div>
+            <div class="opp-hand" id="otop-handbacks" aria-hidden="true"></div>
+          </div>
+
+          <div class="mid-row">
+            <div class="field" id="ofield"><span>接続中…</span></div>
+            <div class="turn-box">
+              <span class="t-num" id="oturn-num">ターン 1</span>
+              <span class="t-who" id="oturn-who">—</span>
+            </div>
+          </div>
+
+          <div class="fighter" id="opanel-bottom">
+            <div class="f-head">
+              <span class="f-name" id="obottom-name">あなた</span>
+              <span class="f-tag" id="obottom-tag"></span>
+              <span class="f-status" id="obottom-status"></span>
+            </div>
+            <div class="hpbar" id="obottom-hpbar"><div id="obottom-hpfill" style="width:100%"></div></div>
+            <div class="hp-text"><span id="obottom-hptext"></span><span class="deck-count" id="obottom-deck"></span></div>
+          </div>
+
+          <div class="energy-row">
+            <span class="e-lbl">エネルギー</span>
+            <div class="crystals" id="ocrystals"></div>
+            <span class="e-num" id="oenergy-num"></span>
+          </div>
+
+          <div class="hand" id="ohand"></div>
+
+          <div class="controls">
+            <button type="button" class="btn primary" id="btn-oendturn">ターン終了</button>
+            <button type="button" class="btn" id="btn-orules">ルール</button>
+            <button type="button" class="btn" id="btn-osurrender">降参</button>
+            <button type="button" class="btn" id="btn-oleave">退出</button>
+          </div>
+        </div>
+
+        <div class="log" id="ologbox">
+          <h2>バトルログ</h2>
+          <ul id="olog"></ul>
+        </div>
+        <p class="note" id="oroom-note"></p>
+      </section>
+    </main>
+
+    <!-- ===== オンライン：参加待ち ===== -->
+    <div class="overlay" id="overlay-owait" role="dialog" aria-modal="true" aria-labelledby="owait-title">
+      <div class="sheet">
+        <p style="margin:0" id="owait-title">ルームを作成しました</p>
+        <div class="room-code-big" id="owait-code">----</div>
+        <p>このコードを対戦相手に送ってください。<br />相手が参加すると自動で対戦が始まります。</p>
+        <p class="note" id="owait-set"></p>
+        <button type="button" class="btn" id="btn-owait-leave">やめる（モード選択へ）</button>
+      </div>
+    </div>
+
+    <!-- ===== オンライン：結果 ===== -->
+    <div class="overlay" id="overlay-oresult" role="dialog" aria-modal="true" aria-labelledby="oresult-title">
+      <div class="sheet">
+        <p style="margin:0" id="oresult-title">勝負あり！</p>
+        <div class="winner-name" id="oresult-winner">—</div>
+        <p id="oresult-detail"></p>
+        <button type="button" class="btn primary" id="btn-orematch">もう一戦（相手も再戦になります）</button>
+        <button type="button" class="btn" id="btn-oback-mode">モード選択に戻る</button>
+      </div>
+    </div>
+
+    <!-- ===== オンライン：降参確認 ===== -->
+    <div class="overlay" id="overlay-osurrender" role="dialog" aria-modal="true">
+      <div class="sheet">
+        <h2>降参しますか？</h2>
+        <p>この対戦は相手の勝ちになります。</p>
+        <button type="button" class="btn primary" id="btn-osurrender-yes">降参する</button>
+        <button type="button" class="btn" id="btn-osurrender-no">対戦に戻る</button>
+      </div>
+    </div>
+
+    <div class="toast hidden" id="otoast" role="status"></div>
+
+    <!-- ===== 受け渡し画面（2人対戦） ===== -->
+    <div class="overlay" id="overlay-handoff" role="dialog" aria-modal="true" aria-labelledby="handoff-title">
+      <div class="sheet">
+        <p style="margin:0">端末を受け渡してください</p>
+        <div class="big-hand" id="handoff-title">プレイヤー1 のターン</div>
+        <p>準備ができるまで手札は隠れています。<br />相手に画面を見られないようにしてから、下のボタンを押してください。</p>
+        <button type="button" class="btn primary" id="btn-handoff-ok">準備OK・手札を見る</button>
+      </div>
+    </div>
+
+    <!-- ===== 結果画面 ===== -->
+    <div class="overlay" id="overlay-result" role="dialog" aria-modal="true" aria-labelledby="result-title">
+      <div class="sheet">
+        <p style="margin:0" id="result-title">勝負あり！</p>
+        <div class="winner-name" id="result-winner">—</div>
+        <p id="result-detail"></p>
+        <button type="button" class="btn primary" id="btn-rematch">もう一戦</button>
+        <button type="button" class="btn" id="btn-back-mode">モード選択に戻る</button>
+      </div>
+    </div>
+
+    <!-- ===== ルール画面 ===== -->
+    <div class="overlay" id="overlay-rules" role="dialog" aria-modal="true" aria-labelledby="rules-title">
+      <div class="sheet">
+        <h2 id="rules-title">ルール</h2>
+        <ul>
+          <li>お互いHP30・手札4枚でスタート。自分のターン開始時に1枚ドロー。</li>
+          <li>エネルギーは毎ターン全回復し、最大値が1ずつ増える（最大8）。</li>
+          <li>攻撃は相手のシールドから先に削れる。「貫通」はシールド無視。</li>
+          <li>毒は、受けた側のターン開始時に2ダメージ（貫通）×2ターン。</li>
+          <li>山札が尽きたら捨て札を再利用。それもなければ引くたび1ダメージ。</li>
+          <li>手札の上限は8枚。</li>
+        </ul>
+        <button type="button" class="btn primary" id="btn-rules-close">閉じる</button>
+      </div>
+    </div>
+
+    <!-- ===== カード編集フォーム ===== -->
+    <div class="overlay" id="overlay-editor" role="dialog" aria-modal="true" aria-labelledby="editor-form-title">
+      <div class="sheet" style="max-width:640px; text-align:left;">
+        <h2 id="editor-form-title">カードを編集</h2>
+        <p id="editor-form-sub" style="margin-top:0;">変更は「保存する」を押した時点で対戦に反映されます。</p>
+        <div class="form-grid">
+          <div class="field"><label for="f-name">カード名 *</label><input id="f-name" type="text" maxlength="24" placeholder="例：フレイムドラゴン"></div>
+          <div class="field"><label for="f-glyph">アイコン文字（1〜2文字）</label><input id="f-glyph" type="text" maxlength="2" placeholder="例：炎"></div>
+          <div class="field"><label for="f-el">属性</label><select id="f-el"><option>炎</option><option>水</option><option>雷</option><option>土</option><option>闇</option><option>光</option><option>無</option></select></div>
+          <div class="field"><label for="f-cost">コスト（0〜8）</label><input id="f-cost" type="number" min="0" max="8" step="1"></div>
+          <div class="field full"><label for="f-text">説明文</label><textarea id="f-text" maxlength="80" placeholder="カードの説明を書いてください"></textarea></div>
+          <div class="field"><label for="f-dmg">攻撃ダメージ</label><input id="f-dmg" type="number" min="0" max="15" step="1"></div>
+          <div class="field"><label for="f-heal">回復量</label><input id="f-heal" type="number" min="0" max="15" step="1"></div>
+          <div class="field"><label for="f-shield">シールド</label><input id="f-shield" type="number" min="0" max="15" step="1"></div>
+          <div class="field"><label for="f-poison">毒（ターン数）</label><input id="f-poison" type="number" min="0" max="5" step="1"></div>
+          <div class="field"><label for="f-draw">ドロー枚数</label><input id="f-draw" type="number" min="0" max="3" step="1"></div>
+          <div class="field"><label for="f-energy">エネルギー増加</label><input id="f-energy" type="number" min="0" max="4" step="1"></div>
+          <div class="field"><label for="f-selfdmg">自分へのダメージ</label><input id="f-selfdmg" type="number" min="0" max="10" step="1"></div>
+          <div class="field"><label>貫通（シールド無視）</label><div class="toggle-row"><button type="button" class="chip-btn" id="f-pierce-off" aria-pressed="true">なし</button><button type="button" class="chip-btn" id="f-pierce-on" aria-pressed="false">あり</button></div></div>
+        </div>
+        <div id="form-error" style="color:var(--bad); font-weight:700; font-size:.88rem; min-height:1.4em; margin-top:8px;"></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+          <button type="button" class="btn primary" id="btn-save-card">保存する</button>
+          <button type="button" class="btn" id="btn-cancel-edit">キャンセル</button>
+          <button type="button" class="btn" id="btn-delete-card" style="color:var(--bad); border-color:var(--bad); margin-left:auto;">このカードを削除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 降参確認 ===== -->
+    <div class="overlay" id="overlay-surrender" role="dialog" aria-modal="true" aria-labelledby="surrender-title">
+      <div class="sheet">
+        <h2 id="surrender-title">降参しますか？</h2>
+        <p id="surrender-text">この対戦は相手の勝ちになります。</p>
+        <button type="button" class="btn primary" id="btn-surrender-yes">降参する</button>
+        <button type="button" class="btn" id="btn-surrender-no">対戦に戻る</button>
+      </div>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ================= カード定義 ================= */
+      var ELEMENTS = {
+        "炎": "#d84a1f", "水": "#2478a6", "雷": "#c98f06", "土": "#8a6d3b",
+        "闇": "#6c4a8a", "光": "#b8860b", "無": "#77705f"
+      };
+      var CARDS = {
+        flame_dragon: { name: "フレイムドラゴン", el: "炎", glyph: "炎", cost: 4, text: "ドラゴンの炎で攻撃。", fx: { dmg: 6 } },
+        meteor:       { name: "メテオストライク", el: "炎", glyph: "隕", cost: 6, text: "隕石を落とす大技。", fx: { dmg: 9 } },
+        fireball:     { name: "ファイアボール", el: "炎", glyph: "火", cost: 2, text: "火球を投げつける。", fx: { dmg: 3 } },
+        seiren:       { name: "ウォーターセイレン", el: "水", glyph: "水", cost: 3, text: "攻撃しつつ、自分を回復。", fx: { dmg: 3, heal: 3 } },
+        ice_shield:   { name: "フロストシールド", el: "水", glyph: "氷", cost: 2, text: "氷の盾で身を守る。", fx: { shield: 5 } },
+        thunder:      { name: "サンダーボルト", el: "雷", glyph: "雷", cost: 2, text: "シールドを貫く電撃。", fx: { dmg: 3, pierce: true } },
+        chain:        { name: "ライトニングチェーン", el: "雷", glyph: "鎖", cost: 4, text: "攻撃して1枚ドロー。", fx: { dmg: 5, draw: 1 } },
+        golem:        { name: "アースゴーレム", el: "土", glyph: "岩", cost: 3, text: "岩の体でがっちり守る。", fx: { shield: 6 } },
+        knight:       { name: "ガードナイト", el: "土", glyph: "騎", cost: 3, text: "攻撃しながら盾も張る。", fx: { dmg: 2, shield: 3 } },
+        assassin:     { name: "シャドウアサシン", el: "闇", glyph: "影", cost: 3, text: "影から急所を貫く。", fx: { dmg: 5, pierce: true } },
+        poison:       { name: "ポイズンダガー", el: "闇", glyph: "毒", cost: 1, text: "毒を付与。相手ターン開始時に2ダメ×2回。", fx: { dmg: 1, poison: 2 } },
+        fairy:        { name: "ヒールフェアリー", el: "光", glyph: "癒", cost: 2, text: "妖精の粉で大きく回復。", fx: { heal: 6 } },
+        regen:        { name: "リジェネハーブ", el: "光", glyph: "葉", cost: 2, text: "回復して1枚ドロー。", fx: { heal: 3, draw: 1 } },
+        potion:       { name: "エナジードリンク", el: "無", glyph: "力", cost: 0, text: "このターンのエネルギー+2。", fx: { energy: 2 } },
+        slime:        { name: "スライムパンチ", el: "無", glyph: "粘", cost: 1, text: "ぷにっとした一撃。", fx: { dmg: 2 } },
+        berserk:      { name: "バーサーク", el: "無", glyph: "狂", cost: 3, text: "大ダメージ。ただし自分も1ダメ。", fx: { dmg: 5, selfdmg: 1 } }
+      };
+      var DECK_LIST = [
+        "flame_dragon","flame_dragon","meteor","fireball","fireball","fireball",
+        "seiren","seiren","ice_shield","ice_shield","thunder","thunder","thunder",
+        "chain","chain","golem","golem","knight","knight","assassin","assassin",
+        "poison","poison","fairy","fairy","regen","potion","potion",
+        "slime","slime","slime","berserk"
+      ];
+      function deepCopy(o){ return JSON.parse(JSON.stringify(o)); }
+      var DEFAULT_CARDS = deepCopy(CARDS);
+      var DEFAULT_DECK_LIST = DECK_LIST.slice();
+      var deckCounts = {};
+      function initDeckCounts(){
+        deckCounts = {};
+        Object.keys(CARDS).forEach(function(k){ deckCounts[k]=0; });
+        DEFAULT_DECK_LIST.forEach(function(id){ if(deckCounts[id]==null) deckCounts[id]=0; deckCounts[id]++; });
+      }
+      initDeckCounts();
+      function buildDeckList(){
+        var arr=[];
+        Object.keys(CARDS).forEach(function(id){
+          var n = deckCounts[id]||0;
+          for(var i=0;i<n;i++) arr.push(id);
+        });
+        if(arr.length===0){
+          // 空デッキ防止：デフォルトに戻す
+          return DEFAULT_DECK_LIST.filter(function(id){ return CARDS[id]; });
+        }
+        return arr;
+      }
+      function deckTotal(){ return buildDeckList().length; }
+
+      /* ================= 状態 ================= */
+      var S = null; // game state
+      var difficulty = "normal";
+      var audioCtx = null;
+
+      function $(id) { return document.getElementById(id); }
+      function escHtml(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(m){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]; }); }
+      function clampInt(v,min,max,fb){ var n=parseInt(v,10); if(isNaN(n)) return fb||0; return Math.max(min,Math.min(max,n)); }
+      function sanitizeCard(raw){
+        if(!raw||typeof raw!=="object") return null;
+        var el = (typeof raw.el==="string" && Object.prototype.hasOwnProperty.call(ELEMENTS, raw.el)) ? raw.el : "無";
+        var name = typeof raw.name==="string" ? raw.name.slice(0,24).trim() : "";
+        if(!name) return null;
+        var glyph = typeof raw.glyph==="string" && raw.glyph.trim() ? raw.glyph.slice(0,2) : name.slice(0,1);
+        var text = typeof raw.text==="string" ? raw.text.slice(0,80) : "";
+        var cost = clampInt(raw.cost,0,8,2);
+        var rfx = (raw.fx && typeof raw.fx==="object") ? raw.fx : {};
+        var fx={};
+        var dmg=clampInt(rfx.dmg,0,15,0); if(dmg) fx.dmg=dmg;
+        var heal=clampInt(rfx.heal,0,15,0); if(heal) fx.heal=heal;
+        var shield=clampInt(rfx.shield,0,15,0); if(shield) fx.shield=shield;
+        var poison=clampInt(rfx.poison,0,5,0); if(poison) fx.poison=poison;
+        var draw=clampInt(rfx.draw,0,3,0); if(draw) fx.draw=draw;
+        var energy=clampInt(rfx.energy,0,4,0); if(energy) fx.energy=energy;
+        var selfdmg=clampInt(rfx.selfdmg,0,10,0); if(selfdmg) fx.selfdmg=selfdmg;
+        if(rfx.pierce===true) fx.pierce=true;
+        return { name:name, el:el, glyph:glyph, cost:cost, text:text||"オリジナルカード。", fx:fx };
+      }
+      function sanitizeImport(data){
+        var cleanCards={}, cleanCounts={};
+        if(!data||typeof data!=="object"||!data.cards||typeof data.cards!=="object") return null;
+        var rawCounts = (data.deckCounts && typeof data.deckCounts==="object") ? data.deckCounts : {};
+        var idx=0;
+        Object.keys(data.cards).forEach(function(rawId){
+          var card = sanitizeCard(data.cards[rawId]);
+          if(!card) return;
+          var id = /^[a-zA-Z0-9_-]{1,64}$/.test(rawId) ? rawId : ("custom_import_"+Date.now()+"_"+(idx++));
+          if(cleanCards[id]) id = id+"_"+(idx++);
+          cleanCards[id]=card;
+          cleanCounts[id]=clampInt(rawCounts[rawId],0,4,1);
+        });
+        if(Object.keys(cleanCards).length===0) return null;
+        return { cards:cleanCards, deckCounts:cleanCounts };
+      }
+      function shuffle(a) {
+        for (var i = a.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+      }
+      function beep(freq, dur) {
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") audioCtx.resume();
+          var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+          o.frequency.value = freq; o.type = "triangle";
+          g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+          o.connect(g); g.connect(audioCtx.destination);
+          o.start(); o.stop(audioCtx.currentTime + dur);
+        } catch (e) { /* 音が出なくてもゲームは続行 */ }
+      }
+
+      function makePlayer(name, isCPU) {
+        return {
+          name: name, isCPU: isCPU,
+          hp: 30, maxhp: 30, shield: 0, poison: 0,
+          energy: 0, maxEnergy: 2,
+          deck: shuffle(buildDeckList()), hand: [], discard: []
+        };
+      }
+
+      function newGame(mode) {
+        var p1, p2;
+        if (mode === "cpu") {
+          p1 = makePlayer("あなた", false);
+          p2 = makePlayer("CPU", true);
+          if (difficulty === "hard") { p2.hp = 35; p2.maxhp = 35; }
+        } else {
+          p1 = makePlayer("プレイヤー1", false);
+          p2 = makePlayer("プレイヤー2", false);
+        }
+        S = {
+          mode: mode, players: [p1, p2], turn: 0, turnCount: 0,
+          busy: false, over: false, lastPlay: null, started: false
+        };
+        drawCards(p1, 4, true);
+        drawCards(p2, mode === "cpu" && difficulty === "hard" ? 5 : 4, true);
+        $("log").innerHTML = "";
+        $("screen-mode").classList.add("hidden");
+        $("screen-game").classList.remove("hidden");
+        $("overlay-result").classList.remove("show");
+        $("mode-note").textContent = mode === "cpu"
+          ? "モード：CPU対戦（" + (difficulty === "hard" ? "つよい" : "ふつう") + "）"
+          : "モード：2人対戦（同じ端末）／ターン交代時は受け渡し画面で手札を隠します";
+        logLine("バトル開始！ " + p1.name + " vs " + p2.name, true);
+        if (mode === "2p") {
+          showHandoff(0, function () { startTurn(true); });
+        } else {
+          startTurn(true);
+        }
+        window.scrollTo(0, 0);
+      }
+
+      /* ================= ターン進行 ================= */
+      function startTurn(isFirst) {
+        if (!S || S.over) return;
+        var me = S.players[S.turn], foe = S.players[1 - S.turn];
+        S.turnCount++;
+        S.started = true;
+        me.maxEnergy = Math.min(8, me.maxEnergy + 1);
+        me.energy = me.maxEnergy;
+        logLine(me.name + " のターン（ターン" + Math.ceil(S.turnCount / 2) + "）", true);
+
+        // 毒ダメージ
+        if (me.poison > 0) {
+          me.poison--;
+          var dealt = applyDamage(me, 2, true);
+          logLine("毒で " + me.name + " に " + dealt + " ダメージ");
+          floatNum(S.turn, "-" + dealt, "dmg");
+          if (checkEnd()) { render(); return; }
+        }
+        if (!isFirst) {
+          drawCards(me, 1, false);
+          if (checkEnd()) { render(); return; }
+        }
+        S.lastPlay = null;
+        render();
+        if (me.isCPU) {
+          S.busy = true; render();
+          setTimeout(cpuPlay, 750);
+        }
+      }
+
+      function endTurn() {
+        if (!S || S.over || S.busy) return;
+        S.turn = 1 - S.turn;
+        var next = S.players[S.turn];
+        if (S.mode === "2p") {
+          render(); // 手札は次の描画で隠れるよう、まず受け渡しを出す
+          showHandoff(S.turn, function () { startTurn(false); });
+        } else if (next.isCPU) {
+          startTurn(false);
+        } else {
+          startTurn(false);
+        }
+      }
+
+      function showHandoff(playerIdx, cb) {
+        S.busy = true;
+        render(); // busy中は手札を描かない（隠す）
+        $("handoff-title").textContent = S.players[playerIdx].name + " のターン";
+        $("overlay-handoff").classList.add("show");
+        $("btn-handoff-ok").onclick = function () {
+          $("overlay-handoff").classList.remove("show");
+          S.busy = false;
+          beep(660, 0.08);
+          cb();
+        };
+      }
+
+      /* ================= カード処理 ================= */
+      function drawCards(p, n, silent) {
+        for (var i = 0; i < n; i++) {
+          if (p.deck.length === 0) {
+            if (p.discard.length > 0) {
+              p.deck = shuffle(p.discard); p.discard = [];
+              if (!silent) logLine(p.name + " は捨て札をシャッフルして山札に戻した");
+            } else {
+              p.hp -= 1;
+              if (!silent) logLine(p.name + " は山札切れで1ダメージ");
+              continue;
+            }
+          }
+          var id = p.deck.pop();
+          if (p.hand.length >= 8) {
+            p.discard.push(id);
+            if (!silent) logLine(p.name + " の手札が上限で " + CARDS[id].name + " は捨て札に");
+          } else {
+            p.hand.push(id);
+          }
+        }
+      }
+
+      function applyDamage(target, amount, pierce) {
+        var rest = amount;
+        if (!pierce && target.shield > 0) {
+          var absorbed = Math.min(target.shield, rest);
+          target.shield -= absorbed; rest -= absorbed;
+        }
+        target.hp -= rest;
+        return amount; // 表示用は総量
+      }
+
+      function playCard(handIdx) {
+        if (!S || S.over || S.busy) return;
+        var me = S.players[S.turn], foe = S.players[1 - S.turn];
+        if (me.isCPU) return;
+        var id = me.hand[handIdx];
+        if (!id) return;
+        var c = CARDS[id];
+        if (c.cost > me.energy) return;
+        me.energy -= c.cost;
+        me.hand.splice(handIdx, 1);
+        me.discard.push(id);
+        S.lastPlay = { who: me.name, card: c, idx: S.turn };
+        resolveCard(me, foe, c);
+        beep(440, 0.07);
+        render();
+        checkEnd();
+      }
+
+      function resolveCard(me, foe, c) {
+        var fx = c.fx, parts = [];
+        if (fx.energy) { me.energy += fx.energy; parts.push("エネルギー+" + fx.energy); }
+        if (fx.shield) { me.shield += fx.shield; parts.push("シールド+" + fx.shield); floatNum(S.turn, "+" + fx.shield + "盾", "sh"); }
+        if (fx.heal) {
+          var before = me.hp;
+          me.hp = Math.min(me.maxhp, me.hp + fx.heal);
+          parts.push("HP " + (me.hp - before) + " 回復");
+          floatNum(S.turn, "+" + (me.hp - before), "heal");
+        }
+        if (fx.dmg) {
+          var shBefore = foe.shield;
+          applyDamage(foe, fx.dmg, !!fx.pierce);
+          parts.push(foe.name + " に " + fx.dmg + " ダメージ" + (fx.pierce ? "（貫通）" : (shBefore > 0 ? "（盾で軽減）" : "")));
+          floatNum(1 - S.turn, "-" + fx.dmg, "dmg");
+          if (fx.dmg >= 6) shakePanel(1 - S.turn);
+        }
+        if (fx.poison) { foe.poison = Math.max(foe.poison, fx.poison); parts.push(foe.name + " に毒"); }
+        if (fx.selfdmg) { me.hp -= fx.selfdmg; parts.push("自分も " + fx.selfdmg + " ダメージ"); }
+        if (fx.draw) { drawCards(me, fx.draw, false); parts.push(fx.draw + "枚ドロー"); }
+        logLine(me.name + " の「" + c.name + "」： " + parts.join("、"));
+      }
+
+      function checkEnd() {
+        if (!S || S.over) return false;
+        var p0 = S.players[0], p1 = S.players[1];
+        if (p0.hp > 0 && p1.hp > 0) return false;
+        S.over = true; S.busy = false;
+        var loser, winner;
+        if (p0.hp <= 0 && p1.hp <= 0) { loser = S.players[S.turn]; winner = S.players[1 - S.turn]; }
+        else if (p0.hp <= 0) { loser = p0; winner = p1; }
+        else { loser = p1; winner = p0; }
+        p0.hp = Math.max(0, p0.hp); p1.hp = Math.max(0, p1.hp);
+        logLine(winner.name + " の勝利！", true);
+        beep(880, 0.18);
+        render();
+        setTimeout(function () {
+          $("result-winner").textContent = winner.name + " の勝ち！";
+          $("result-detail").textContent =
+            Math.ceil(S.turnCount / 2) + " ターンで決着。" +
+            winner.name + " の残りHPは " + winner.hp + " でした。";
+          $("overlay-result").classList.add("show");
+        }, 650);
+        return true;
+      }
+
+      function surrender() {
+        if (!S || S.over) return;
+        var loser = S.players[S.turn];
+        loser.hp = 0;
+        $("overlay-surrender").classList.remove("show");
+        checkEnd();
+      }
+
+      /* ================= CPU ================= */
+      function cpuScore(c, me, foe) {
+        var fx = c.fx, s = c.cost * 2;
+        if (fx.dmg) {
+          s += fx.dmg * 3;
+          if (foe.hp + (fx.pierce ? 0 : foe.shield) <= fx.dmg) s += 1000; // とどめ
+          if (fx.pierce && foe.shield >= 3) s += 6;
+        }
+        if (fx.heal) s += (me.maxhp - me.hp >= 5) ? fx.heal * 3 : fx.heal;
+        if (fx.shield) s += me.shield === 0 ? fx.shield * 1.6 : fx.shield;
+        if (fx.poison && foe.poison === 0) s += 8;
+        if (fx.energy) s += 12;
+        if (fx.draw) s += 5;
+        if (fx.selfdmg && me.hp <= fx.selfdmg + 1) s -= 500;
+        return s;
+      }
+      function cpuPlay() {
+        if (!S || S.over) return;
+        var me = S.players[S.turn], foe = S.players[1 - S.turn];
+        if (!me.isCPU) { S.busy = false; render(); return; }
+        // 出せるカードから最善を選ぶ
+        var best = -1, bestScore = -Infinity;
+        for (var i = 0; i < me.hand.length; i++) {
+          var c = CARDS[me.hand[i]];
+          if (c.cost > me.energy) continue;
+          var sc = cpuScore(c, me, foe);
+          if (sc > bestScore) { bestScore = sc; best = i; }
+        }
+        if (best === -1 || (bestScore < 4 && me.energy < 3)) {
+          S.busy = false;
+          logLine(me.name + " はターン終了");
+          endTurn();
+          return;
+        }
+        var id = me.hand[best], card = CARDS[id];
+        me.energy -= card.cost;
+        me.hand.splice(best, 1);
+        me.discard.push(id);
+        S.lastPlay = { who: me.name, card: card, idx: S.turn };
+        resolveCard(me, foe, card);
+        beep(330, 0.07);
+        render();
+        if (checkEnd()) return;
+        setTimeout(cpuPlay, 800);
+      }
+
+      /* ================= 描画 ================= */
+      function viewIdx() {
+        // 下側に表示するプレイヤー：2人対戦では手番側、CPU戦では常にプレイヤー1
+        return S.mode === "2p" ? S.turn : 0;
+      }
+      function statusHtml(p) {
+        var h = "";
+        if (p.shield > 0) h += '<span class="badge-shield">シールド ' + p.shield + "</span>";
+        if (p.poison > 0) h += '<span class="badge-poison">毒（あと' + p.poison + "回）</span>";
+        return h;
+      }
+      function fillPanel(prefix, p, isActive) {
+        $(prefix + "-name").textContent = p.name;
+        $(prefix + "-tag").textContent = p.isCPU ? "CPU" : (S.mode === "2p" ? "プレイヤー" : "");
+        $(prefix + "-status").innerHTML = statusHtml(p);
+        var pct = Math.max(0, Math.round(p.hp / p.maxhp * 100));
+        $(prefix + "-hpfill").style.width = pct + "%";
+        $(prefix + "-hpbar").classList.toggle("low", p.hp <= 10);
+        $(prefix + "-hptext").textContent = "HP " + Math.max(0, p.hp) + " / " + p.maxhp;
+        $(prefix + "-deck").textContent = "山札 " + p.deck.length + "／手札 " + p.hand.length;
+        $("panel-" + prefix).classList.toggle("active", isActive);
+      }
+      function render() {
+        if (!S) return;
+        var vi = viewIdx(), me = S.players[vi], foe = S.players[1 - vi];
+        fillPanel("bottom", me, S.turn === vi);
+        fillPanel("top", foe, S.turn === 1 - vi);
+        // 相手の手札（裏向き）
+        var backs = "";
+        for (var i = 0; i < foe.hand.length; i++) backs += '<div class="cardback"></div>';
+        $("top-handbacks").innerHTML = backs;
+        // フィールド
+        if (S.lastPlay) {
+          $("field").innerHTML = '<div class="last-play play-in"><b>' + escHtml(S.lastPlay.who) + "：「" + escHtml(S.lastPlay.card.name) + "」</b><span>" + escHtml(S.lastPlay.card.text) + "</span></div>";
+        } else {
+          $("field").innerHTML = "<span>" + escHtml(S.players[S.turn].name) + " のターン。カードを選んで出そう。</span>";
+        }
+        $("turn-num").textContent = "ターン " + Math.ceil(Math.max(1, S.turnCount) / 2);
+        $("turn-who").textContent = S.over ? "決着" : S.players[S.turn].name;
+        // エネルギー（手番プレイヤー）
+        var cur = S.players[S.turn];
+        var cr = "";
+        for (var e = 0; e < cur.maxEnergy; e++) cr += '<div class="crystal' + (e < cur.energy ? " on" : "") + '"></div>';
+        $("crystals").innerHTML = cr;
+        $("energy-num").textContent = cur.energy + " / " + cur.maxEnergy;
+        // 手札：手番が人間で busy でないときだけ表示・操作可能
+        var handEl = $("hand");
+        handEl.innerHTML = "";
+        var canPlay = !S.busy && !S.over && !cur.isCPU && S.started;
+        if (S.mode === "2p" && S.busy) {
+          handEl.innerHTML = '<p style="color:#fdf6e3;margin:4px 2px;font-weight:700;">受け渡し中…手札は隠れています</p>';
+        } else if (canPlay || !cur.isCPU) {
+          var showHand = S.players[vi];
+          showHand.hand.forEach(function (id, idx) {
+            var c = CARDS[id];
+            if (!c) return;
+            var safeEl = Object.prototype.hasOwnProperty.call(ELEMENTS, c.el) ? c.el : "無";
+            var safeCost = clampInt(c.cost,0,8,0);
+            var fx = c.fx||{};
+            var b = document.createElement("button");
+            b.type = "button";
+            b.className = "bcard";
+            b.style.setProperty("--el", ELEMENTS[safeEl]);
+            b.disabled = !canPlay || S.turn !== vi || safeCost > showHand.energy;
+            var stats = "";
+            if (fx.dmg) stats += '<span class="stat dmg">攻撃 ' + clampInt(fx.dmg,0,15,0) + (fx.pierce ? "・貫通" : "") + "</span>";
+            if (fx.heal) stats += '<span class="stat heal">回復 ' + clampInt(fx.heal,0,15,0) + "</span>";
+            if (fx.shield) stats += '<span class="stat sh">盾 +' + clampInt(fx.shield,0,15,0) + "</span>";
+            if (fx.poison) stats += '<span class="stat">毒</span>';
+            if (fx.energy) stats += '<span class="stat">エネ +' + clampInt(fx.energy,0,4,0) + "</span>";
+            if (fx.draw) stats += '<span class="stat">' + clampInt(fx.draw,0,3,0) + "ドロー</span>";
+            b.innerHTML =
+              '<span class="c-top"><span class="cost">' + safeCost + '</span><span class="el-chip">' + escHtml(safeEl) + '</span></span>' +
+              '<span class="c-glyph">' + escHtml(c.glyph) + "</span>" +
+              '<span class="c-name">' + escHtml(c.name) + "</span>" +
+              '<span class="c-text">' + escHtml(c.text) + "</span>" +
+              '<span class="c-stats">' + stats + "</span>";
+            b.addEventListener("click", function () { playCard(idx); });
+            handEl.appendChild(b);
+          });
+          if (showHand.hand.length === 0) {
+            handEl.innerHTML = '<p style="color:#fdf6e3;margin:4px 2px;font-weight:700;">手札がありません。ターン終了してください。</p>';
+          }
+        } else {
+          handEl.innerHTML = '<p style="color:#fdf6e3;margin:4px 2px;font-weight:700;">CPUが考え中…</p>';
+        }
+        $("btn-endturn").disabled = S.busy || S.over || cur.isCPU;
+        $("btn-endturn").textContent = S.mode === "2p" ? "ターン終了して交代" : "ターン終了";
+        $("btn-surrender").disabled = S.over || S.busy || cur.isCPU;
+      }
+
+      function floatNum(playerIdx, text, cls) {
+        var vi = viewIdx();
+        var panel = $(playerIdx === vi ? "panel-bottom" : "panel-top");
+        if (!panel) return;
+        var s = document.createElement("span");
+        s.className = "float-num " + cls;
+        s.textContent = text;
+        s.style.right = "18px"; s.style.top = "8px";
+        panel.appendChild(s);
+        setTimeout(function () { s.remove(); }, 1000);
+      }
+      function shakePanel(playerIdx) {
+        var vi = viewIdx();
+        var panel = $(playerIdx === vi ? "panel-bottom" : "panel-top");
+        panel.classList.remove("shake");
+        void panel.offsetWidth;
+        panel.classList.add("shake");
+      }
+      function logLine(text, isTurn) {
+        var li = document.createElement("li");
+        if (isTurn) li.className = "turn-mark";
+        li.textContent = text;
+        var log = $("log");
+        log.appendChild(li);
+        while (log.children.length > 60) log.removeChild(log.firstChild);
+        $("logbox").scrollTop = $("logbox").scrollHeight;
+      }
+
+      /* ================= イベント ================= */
+      $("btn-mode-cpu").addEventListener("click", function () { beep(660, 0.06); newGame("cpu"); });
+      $("btn-mode-2p").addEventListener("click", function () { beep(660, 0.06); newGame("2p"); });
+      $("diff-normal").addEventListener("click", function () {
+        difficulty = "normal";
+        $("diff-normal").setAttribute("aria-pressed", "true");
+        $("diff-hard").setAttribute("aria-pressed", "false");
+      });
+      $("diff-hard").addEventListener("click", function () {
+        difficulty = "hard";
+        $("diff-hard").setAttribute("aria-pressed", "true");
+        $("diff-normal").setAttribute("aria-pressed", "false");
+      });
+      $("btn-endturn").addEventListener("click", function () {
+        if (!S || S.busy || S.over) return;
+        logLine(S.players[S.turn].name + " はターン終了");
+        beep(520, 0.06);
+        endTurn();
+      });
+      $("btn-rules2").addEventListener("click", function () { $("overlay-rules").classList.add("show"); });
+      $("btn-rules-close").addEventListener("click", function () { $("overlay-rules").classList.remove("show"); });
+      $("btn-surrender").addEventListener("click", function () {
+        if (!S || S.over || S.busy || S.players[S.turn].isCPU) return;
+        $("surrender-text").textContent = S.mode === "2p"
+          ? S.players[S.turn].name + " が降参すると、" + S.players[1 - S.turn].name + " の勝ちになります。"
+          : "この対戦は相手の勝ちになります。";
+        $("overlay-surrender").classList.add("show");
+      });
+      $("btn-surrender-no").addEventListener("click", function () { $("overlay-surrender").classList.remove("show"); });
+      $("btn-surrender-yes").addEventListener("click", surrender);
+      $("btn-rematch").addEventListener("click", function () { newGame(S.mode); });
+      $("btn-back-mode").addEventListener("click", function () {
+        $("overlay-result").classList.remove("show");
+        $("screen-game").classList.add("hidden");
+        $("screen-mode").classList.remove("hidden");
+        S = null;
+        window.scrollTo(0, 0);
+      });
+
+      /* ================= カード編集 ================= */
+      var editingId = null;
+      var editingIsNew = false;
+      var formPierce = false;
+      function esc(s){ return String(s||"").replace(/[&<>"']/g, function(m){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]; }); }
+      function fxText(c){
+        var fx=c.fx||{}, parts=[];
+        if(fx.dmg) parts.push("攻撃"+clampInt(fx.dmg,0,15,0)+(fx.pierce?"・貫通":""));
+        if(fx.heal) parts.push("回復"+clampInt(fx.heal,0,15,0));
+        if(fx.shield) parts.push("盾+"+clampInt(fx.shield,0,15,0));
+        if(fx.poison) parts.push("毒"+clampInt(fx.poison,0,5,0));
+        if(fx.draw) parts.push(clampInt(fx.draw,0,3,0)+"ドロー");
+        if(fx.energy) parts.push("エネ+"+clampInt(fx.energy,0,4,0));
+        if(fx.selfdmg) parts.push("自傷"+clampInt(fx.selfdmg,0,10,0));
+        return parts.length? parts.join(" / ") : "効果なし";
+      }
+      function updateDeckLabels(){
+        var total = deckTotal();
+        var kinds = Object.keys(CARDS).length;
+        var t1 = $("deck-total-label"); if(t1) t1.textContent = "デッキ "+total+"枚 ・ カード "+kinds+"種";
+        var t2 = $("deck-total-editor"); if(t2) t2.textContent = "デッキ "+total+"枚 ・ カード "+kinds+"種";
+      }
+      function renderEditor(){
+        var grid = $("editor-grid");
+        grid.innerHTML = "";
+        var ids = Object.keys(CARDS);
+        ids.sort(function(a,b){ return (CARDS[a].cost - CARDS[b].cost) || CARDS[a].name.localeCompare(CARDS[b].name,"ja"); });
+        ids.forEach(function(id){
+          var c = CARDS[id];
+          var isCustom = id.indexOf("custom_")===0;
+          var wrap = document.createElement("div");
+          wrap.className = "edit-card" + (isCustom ? " is-custom" : "");
+          var count = clampInt(deckCounts[id],0,4,0);
+          var safeEl2 = Object.prototype.hasOwnProperty.call(ELEMENTS, c.el) ? c.el : "無";
+          var safeCost2 = clampInt(c.cost,0,8,0);
+          var elColor = ELEMENTS[safeEl2];
+          wrap.innerHTML =
+            '<div class="ec-top"><span class="ec-name">'+esc(c.name)+'</span><span class="el-chip" style="--el:'+elColor+'; color:'+elColor+'; border-color:'+elColor+'">'+esc(safeEl2)+(isCustom?" ・ 自作":"")+'</span></div>' +
+            '<div class="bcard ec-preview" style="--el:'+elColor+'"><span class="c-top"><span class="cost">'+safeCost2+'</span><span class="el-chip">'+esc(safeEl2)+'</span></span><span class="c-glyph">'+esc(c.glyph)+'</span><span class="c-name">'+esc(c.name)+'</span><span class="c-text">'+esc(c.text)+'</span><span class="c-stats"><span class="stat">'+esc(fxText(c))+'</span></span></div>' +
+            '<div class="ec-meta">'+esc(fxText(c))+' ・ コスト '+safeCost2+'</div>' +
+            '<div class="deck-ctrl"><span class="dc-lbl">デッキ枚数</span><button type="button" data-act="dec" aria-label="減らす">−</button><span class="dc-num">'+count+'</span><button type="button" data-act="inc" aria-label="増やす">＋</button></div>' +
+            '<div style="display:flex; gap:8px;"><button type="button" class="btn small" data-act="edit" style="flex:1;">編集する</button><button type="button" class="btn small" data-act="dup">複製</button></div>';
+          wrap.querySelector('[data-act="dec"]').addEventListener("click", function(){ deckCounts[id]=Math.max(0,(deckCounts[id]||0)-1); renderEditor(); });
+          wrap.querySelector('[data-act="inc"]').addEventListener("click", function(){ deckCounts[id]=Math.min(4,(deckCounts[id]||0)+1); renderEditor(); });
+          wrap.querySelector('[data-act="edit"]').addEventListener("click", function(){ openEditor(id,false); });
+          wrap.querySelector('[data-act="dup"]').addEventListener("click", function(){
+            var nid = "custom_"+Date.now()+"_"+Math.floor(Math.random()*1000);
+            CARDS[nid]=deepCopy(CARDS[id]); CARDS[nid].name = CARDS[id].name+"・改";
+            deckCounts[nid]=1;
+            $("editor-msg").textContent = "「"+CARDS[nid].name+"」を複製しました。";
+            renderEditor();
+          });
+          grid.appendChild(wrap);
+        });
+        updateDeckLabels();
+      }
+      function setPierce(v){
+        formPierce=v;
+        $("f-pierce-on").setAttribute("aria-pressed", v?"true":"false");
+        $("f-pierce-off").setAttribute("aria-pressed", v?"false":"true");
+      }
+      function openEditor(id, isNew){
+        editingId=id; editingIsNew=isNew;
+        var c = isNew ? {name:"", el:"炎", glyph:"新", cost:2, text:"", fx:{dmg:3}} : CARDS[id];
+        var fx=c.fx||{};
+        $("editor-form-title").textContent = isNew ? "新しいカードを作る" : "カードを編集";
+        $("f-name").value=c.name||""; $("f-glyph").value=c.glyph||""; $("f-el").value=c.el||"炎"; $("f-cost").value=c.cost!=null?c.cost:2; $("f-text").value=c.text||"";
+        $("f-dmg").value=fx.dmg||0; $("f-heal").value=fx.heal||0; $("f-shield").value=fx.shield||0; $("f-poison").value=fx.poison||0; $("f-draw").value=fx.draw||0; $("f-energy").value=fx.energy||0; $("f-selfdmg").value=fx.selfdmg||0;
+        setPierce(!!fx.pierce);
+        $("form-error").textContent="";
+        $("btn-delete-card").style.display = isNew ? "none" : "";
+        $("overlay-editor").classList.add("show");
+      }
+      function numVal(id){ var v=parseInt($(id).value,10); return isNaN(v)?0:v; }
+      function saveCard(){
+        var name = $("f-name").value.trim();
+        if(!name){ $("form-error").textContent="カード名を入力してください。"; return; }
+        var cost = numVal("f-cost");
+        if(cost<0||cost>8){ $("form-error").textContent="コストは0〜8で入力してください。"; return; }
+        var fx={};
+        var dmg=numVal("f-dmg"), heal=numVal("f-heal"), shield=numVal("f-shield"), poison=numVal("f-poison"), draw=numVal("f-draw"), energy=numVal("f-energy"), selfdmg=numVal("f-selfdmg");
+        if(dmg) fx.dmg=dmg; if(heal) fx.heal=heal; if(shield) fx.shield=shield; if(poison) fx.poison=poison; if(draw) fx.draw=draw; if(energy) fx.energy=energy; if(selfdmg) fx.selfdmg=selfdmg;
+        if(formPierce && dmg) fx.pierce=true; else if(formPierce) fx.pierce=true;
+        if(!dmg && !heal && !shield && !poison && !draw && !energy){ $("form-error").textContent="効果を1つ以上、0より大きい数で入力してください（攻撃・回復・盾など）。"; return; }
+        var data={ name:name, el:$("f-el").value, glyph:($("f-glyph").value.trim()||name.slice(0,1)), cost:cost, text:($("f-text").value.trim()||"オリジナルカード。"), fx:fx };
+        if(editingIsNew){
+          var nid="custom_"+Date.now();
+          CARDS[nid]=data; deckCounts[nid]=2;
+          $("editor-msg").textContent="新しいカード「"+name+"」を追加しました（デッキに2枚入っています）。";
+        } else {
+          CARDS[editingId]=data;
+          if(deckCounts[editingId]==null) deckCounts[editingId]=1;
+          $("editor-msg").textContent="「"+name+"」を保存しました。次の対戦から反映されます。";
+        }
+        $("overlay-editor").classList.remove("show");
+        renderEditor();
+        beep(660,0.07);
+      }
+      $("f-pierce-on").addEventListener("click", function(){ setPierce(true); });
+      $("f-pierce-off").addEventListener("click", function(){ setPierce(false); });
+      $("btn-save-card").addEventListener("click", saveCard);
+      $("btn-cancel-edit").addEventListener("click", function(){ $("overlay-editor").classList.remove("show"); });
+      $("btn-delete-card").addEventListener("click", function(){
+        if(!editingId) return;
+        var nm=CARDS[editingId]?CARDS[editingId].name:"";
+        delete CARDS[editingId]; delete deckCounts[editingId];
+        $("overlay-editor").classList.remove("show");
+        $("editor-msg").textContent="「"+nm+"」を削除しました。";
+        renderEditor();
+      });
+      $("btn-open-editor").addEventListener("click", function(){
+        $("screen-mode").classList.add("hidden");
+        $("screen-game").classList.add("hidden");
+        $("screen-editor").classList.remove("hidden");
+        $("editor-msg").textContent="";
+        renderEditor();
+        window.scrollTo(0,0);
+      });
+      $("btn-editor-back").addEventListener("click", function(){
+        $("screen-editor").classList.add("hidden");
+        $("screen-mode").classList.remove("hidden");
+        updateDeckLabels();
+        window.scrollTo(0,0);
+      });
+      $("btn-add-card").addEventListener("click", function(){ openEditor(null,true); });
+      $("btn-reset-cards").addEventListener("click", function(){
+        CARDS = deepCopy(DEFAULT_CARDS);
+        initDeckCounts();
+        $("editor-msg").textContent="カードとデッキを初期状態に戻しました。";
+        renderEditor();
+      });
+      $("btn-export-cards").addEventListener("click", function(){
+        var payload={ cards:CARDS, deckCounts:deckCounts, exportedAt:new Date().toISOString() };
+        var blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+        var url=URL.createObjectURL(blob);
+        var a=document.createElement("a"); a.href=url; a.download="card-battle-cards.json"; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 800);
+        $("editor-msg").textContent="編集データをダウンロードしました。";
+      });
+      $("file-import").addEventListener("change", function(e){
+        var file=e.target.files && e.target.files[0]; if(!file) return;
+        var reader=new FileReader();
+        reader.onload=function(){
+          try{
+            var data=JSON.parse(String(reader.result||""));
+            var clean=sanitizeImport(data);
+            if(!clean) throw new Error("bad");
+            CARDS=clean.cards;
+            deckCounts=clean.deckCounts;
+            $("editor-msg").style.color="var(--good)";
+            $("editor-msg").textContent="データを読み込みました。カード "+Object.keys(CARDS).length+" 種が反映されています。";
+            renderEditor();
+          }catch(err){ $("editor-msg").textContent="読み込みに失敗しました。カードバトルの書き出しファイルを選んでください。"; $("editor-msg").style.color="var(--bad)"; }
+        };
+        reader.readAsText(file);
+        e.target.value="";
+      });
+      updateDeckLabels();
+    </script>
+
+    <script>
+      /* ================= オンライン対戦クライアント =================
+         ローカルモード（上のスクリプト）とは独立。状態はサーバーから届く
+         viewFor の内容だけを描画する（相手の手札は枚数しか届かない）。 */
+      (function () {
+        "use strict";
+        var EL_COLORS = {
+          "炎": "#d84a1f", "水": "#2478a6", "雷": "#c98f06", "土": "#8a6d3b",
+          "闇": "#6c4a8a", "光": "#b8860b", "無": "#77705f"
+        };
+        function $(id) { return document.getElementById(id); }
+        function esc(s) {
+          return String(s == null ? "" : s).replace(/[&<>"']/g, function (m) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
+          });
+        }
+
+        var ws = null;
+        var ostate = null;
+        var mySeat = null;
+        var roomCode = null;
+        var resultShownFor = null; // 決着表示済みの turnCount-of-game 識別用
+
+        function toast(msg) {
+          var t = $("otoast");
+          t.textContent = msg;
+          t.classList.remove("hidden");
+          clearTimeout(toast._tm);
+          toast._tm = setTimeout(function () { t.classList.add("hidden"); }, 3200);
+        }
+        function setStatus(msg) { $("online-status").textContent = msg || ""; }
+
+        function showScreen(id) {
+          ["screen-mode", "screen-editor", "screen-game", "screen-online", "screen-obattle"].forEach(function (s) {
+            $(s).classList.toggle("hidden", s !== id);
+          });
+          window.scrollTo(0, 0);
+        }
+
+        function connect(onOpen) {
+          var proto = location.protocol === "https:" ? "wss:" : "ws:";
+          ws = new WebSocket(proto + "//" + location.host);
+          ws.onopen = onOpen;
+          ws.onmessage = function (ev) {
+            var msg;
+            try { msg = JSON.parse(ev.data); } catch (e) { return; }
+            if (msg.type === "joined") {
+              roomCode = msg.code;
+              mySeat = msg.seat;
+              if (msg.cardSetFallback) {
+                toast("カードセットを読み込めなかったため、標準カードセットで対戦します");
+              }
+              localStorage.setItem("cardbattle-online-room", JSON.stringify({ code: msg.code, playerId: msg.playerId }));
+              ostate = msg.state;
+              resultShownFor = null;
+              showScreen("screen-obattle");
+              if (ostate.phase === "waiting") {
+                $("owait-code").textContent = msg.code;
+                $("overlay-owait").classList.add("show");
+              }
+              renderOnline();
+            } else if (msg.type === "state") {
+              ostate = msg.state;
+              renderOnline();
+            } else if (msg.type === "error") {
+              toast(msg.message);
+              setStatus(msg.message);
+            }
+          };
+          ws.onclose = function () {
+            if (!$("screen-obattle").classList.contains("hidden")) {
+              toast("接続が切れました。モード選択に戻って「再接続する」から復帰できます");
+            }
+          };
+        }
+        function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+        function myName(fallback) {
+          var n = $("oname").value.trim();
+          if (n) localStorage.setItem("cardbattle-online-name", n);
+          return n || fallback;
+        }
+
+        /* ---------- ロビー ---------- */
+        $("btn-mode-online").addEventListener("click", function () {
+          var savedName = localStorage.getItem("cardbattle-online-name");
+          if (savedName && !$("oname").value) $("oname").value = savedName;
+          refreshReconnectBox();
+          setStatus("");
+          showScreen("screen-online");
+        });
+        $("btn-online-back").addEventListener("click", function () { showScreen("screen-mode"); });
+        $("btn-create-room").addEventListener("click", function () {
+          setStatus("接続中…");
+          connect(function () {
+            // ホストの現在のカードセット（編集内容を含む）をサーバーへ送る。
+            // サーバー側で検証され、このルームの対戦（両者共通）に採用される。
+            send({ type: "create", name: myName("プレイヤー1"), cardSet: { cards: CARDS, deckCounts: deckCounts } });
+          });
+        });
+        $("btn-join-room").addEventListener("click", function () {
+          var code = $("ocode").value.trim().toUpperCase();
+          if (code.length !== 4) { toast("4文字のルームコードを入れてください"); return; }
+          setStatus("接続中…");
+          connect(function () { send({ type: "join", code: code, name: myName("プレイヤー2") }); });
+        });
+        function refreshReconnectBox() {
+          var saved = null;
+          try { saved = JSON.parse(localStorage.getItem("cardbattle-online-room") || "null"); } catch (e) { }
+          if (saved && saved.code) {
+            $("oreconnect-code").textContent = saved.code;
+            $("oreconnect-box").classList.remove("hidden");
+          } else {
+            $("oreconnect-box").classList.add("hidden");
+          }
+        }
+        $("btn-reconnect").addEventListener("click", function () {
+          var saved = null;
+          try { saved = JSON.parse(localStorage.getItem("cardbattle-online-room") || "null"); } catch (e) { }
+          if (!saved) { toast("再接続できる記録がありません"); return; }
+          setStatus("再接続中…");
+          connect(function () { send({ type: "reconnect", code: saved.code, playerId: saved.playerId }); });
+        });
+        $("btn-forget-room").addEventListener("click", function () {
+          localStorage.removeItem("cardbattle-online-room");
+          refreshReconnectBox();
+        });
+
+        /* ---------- 対戦操作 ---------- */
+        $("btn-oendturn").addEventListener("click", function () { send({ type: "end" }); });
+        $("btn-orules").addEventListener("click", function () { $("overlay-rules").classList.add("show"); });
+        $("btn-osurrender").addEventListener("click", function () { $("overlay-osurrender").classList.add("show"); });
+        $("btn-osurrender-no").addEventListener("click", function () { $("overlay-osurrender").classList.remove("show"); });
+        $("btn-osurrender-yes").addEventListener("click", function () {
+          $("overlay-osurrender").classList.remove("show");
+          send({ type: "surrender" });
+        });
+        $("btn-orematch").addEventListener("click", function () { send({ type: "restart" }); });
+        function leaveOnline() {
+          try { if (ws) ws.close(); } catch (e) { }
+          ws = null; ostate = null; roomCode = null; mySeat = null;
+          localStorage.removeItem("cardbattle-online-room");
+          $("overlay-owait").classList.remove("show");
+          $("overlay-oresult").classList.remove("show");
+          showScreen("screen-mode");
+        }
+        $("btn-oleave").addEventListener("click", leaveOnline);
+        $("btn-oback-mode").addEventListener("click", leaveOnline);
+        $("btn-owait-leave").addEventListener("click", leaveOnline);
+
+        /* ---------- 描画 ---------- */
+        function statusHtml(p) {
+          var h = "";
+          if (p.shield > 0) h += '<span class="badge-shield">シールド ' + p.shield + "</span>";
+          if (p.poison > 0) h += '<span class="badge-poison">毒（あと' + p.poison + "回）</span>";
+          return h;
+        }
+        function fillPanel(prefix, p, isActive, tag) {
+          $(prefix + "-name").textContent = p.name;
+          $(prefix + "-tag").textContent = tag || "";
+          $(prefix + "-status").innerHTML = statusHtml(p);
+          var pct = Math.max(0, Math.round(p.hp / p.maxhp * 100));
+          $(prefix + "-hpfill").style.width = pct + "%";
+          $(prefix + "-hpbar").classList.toggle("low", p.hp <= 10);
+          $(prefix + "-hptext").textContent = "HP " + Math.max(0, p.hp) + " / " + p.maxhp;
+          $(prefix + "-deck").textContent = "山札 " + p.deckCount + "／手札 " + p.handCount;
+          $("opanel-" + (prefix === "otop" ? "top" : "bottom")).classList.toggle("active", isActive);
+        }
+
+        function renderOnline() {
+          var s = ostate;
+          if (!s || !s.me) return;
+          var me = s.me, foe = s.foe;
+
+          // 参加待ち／結果オーバーレイの開閉
+          if (s.phase === "waiting") {
+            $("owait-code").textContent = roomCode || "----";
+            $("owait-set").textContent = (s.cardSet && s.cardSet.custom)
+              ? "このルームは、あなたの編集カードセットで対戦します（相手も同じセットです）。"
+              : "このルームは、標準カードセットで対戦します。";
+            $("overlay-owait").classList.add("show");
+          } else {
+            $("overlay-owait").classList.remove("show");
+          }
+          if (s.phase === "over") {
+            var key = roomCode + ":" + s.turnCount;
+            if (resultShownFor !== key) {
+              resultShownFor = key;
+              var iWon = s.winner === s.youAre;
+              $("oresult-winner").textContent = iWon ? "あなたの勝ち！" : s.winnerName + " の勝ち";
+              $("oresult-detail").textContent =
+                s.turnNumber + " ターンで決着。" + (iWon ? "お見事でした！" : "次は勝とう。");
+              $("overlay-oresult").classList.add("show");
+            }
+          } else {
+            resultShownFor = null;
+            $("overlay-oresult").classList.remove("show");
+          }
+
+          // 相手パネル
+          if (foe) {
+            var foeTag = !s.foeJoined ? "参加待ち" : (!s.foeConnected ? "接続が切れています" : "オンライン対戦");
+            fillPanel("otop", foe, s.phase === "playing" && !s.isMyTurn, foeTag);
+            var backs = "";
+            for (var i = 0; i < foe.handCount; i++) backs += '<div class="cardback"></div>';
+            $("otop-handbacks").innerHTML = backs;
+          } else {
+            $("otop-name").textContent = "（参加待ち）";
+            $("otop-tag").textContent = "ルームコードを相手に送ってね";
+            $("otop-status").innerHTML = "";
+            $("otop-hpfill").style.width = "100%";
+            $("otop-hptext").textContent = "";
+            $("otop-deck").textContent = "";
+            $("otop-handbacks").innerHTML = "";
+          }
+          fillPanel("obottom", me, s.isMyTurn, "あなた");
+
+          // フィールド
+          if (s.phase === "waiting") {
+            $("ofield").innerHTML = "<span>相手の参加を待っています…</span>";
+          } else if (s.lastPlay) {
+            $("ofield").innerHTML = '<div class="last-play play-in"><b>' + esc(s.lastPlay.who) + "：「" + esc(s.lastPlay.name) + "」</b><span>" + esc(s.lastPlay.text) + "</span></div>";
+          } else if (s.phase === "over") {
+            $("ofield").innerHTML = "<span>対戦終了</span>";
+          } else {
+            $("ofield").innerHTML = "<span>" + esc(s.isMyTurn ? "あなたのターン。カードを選んで出そう。" : foe.name + " のターン。待とう。") + "</span>";
+          }
+          $("oturn-num").textContent = "ターン " + s.turnNumber;
+          $("oturn-who").textContent = s.phase === "over" ? "決着" : (s.phase === "waiting" ? "参加待ち" : (s.isMyTurn ? me.name : (foe ? foe.name : "—")));
+
+          // エネルギー表示は手番プレイヤー（本体と同じ）
+          var cur = s.isMyTurn || !foe ? me : foe;
+          var cr = "";
+          for (var e = 0; e < cur.maxEnergy; e++) cr += '<div class="crystal' + (e < cur.energy ? " on" : "") + '"></div>';
+          $("ocrystals").innerHTML = cr;
+          $("oenergy-num").textContent = cur.energy + " / " + cur.maxEnergy;
+
+          // 自分の手札
+          var handEl = $("ohand");
+          handEl.innerHTML = "";
+          var canPlay = s.phase === "playing" && s.isMyTurn;
+          me.hand.forEach(function (c, idx) {
+            var elName = EL_COLORS[c.el] ? c.el : "無";
+            var fx = c.fx || {};
+            var b = document.createElement("button");
+            b.type = "button";
+            b.className = "bcard";
+            b.style.setProperty("--el", EL_COLORS[elName]);
+            b.disabled = !canPlay || c.cost > me.energy;
+            var stats = "";
+            if (fx.dmg) stats += '<span class="stat dmg">攻撃 ' + fx.dmg + (fx.pierce ? "・貫通" : "") + "</span>";
+            if (fx.heal) stats += '<span class="stat heal">回復 ' + fx.heal + "</span>";
+            if (fx.shield) stats += '<span class="stat sh">盾 +' + fx.shield + "</span>";
+            if (fx.poison) stats += '<span class="stat">毒</span>';
+            if (fx.energy) stats += '<span class="stat">エネ +' + fx.energy + "</span>";
+            if (fx.draw) stats += '<span class="stat">' + fx.draw + "ドロー</span>";
+            if (fx.selfdmg) stats += '<span class="stat">自傷 ' + fx.selfdmg + "</span>";
+            b.innerHTML =
+              '<span class="c-top"><span class="cost">' + c.cost + '</span><span class="el-chip">' + esc(elName) + "</span></span>" +
+              '<span class="c-glyph">' + esc(c.glyph) + "</span>" +
+              '<span class="c-name">' + esc(c.name) + "</span>" +
+              '<span class="c-text">' + esc(c.text) + "</span>" +
+              '<span class="c-stats">' + stats + "</span>";
+            b.addEventListener("click", function () { send({ type: "play", handIndex: idx }); });
+            handEl.appendChild(b);
+          });
+          if (me.hand.length === 0) {
+            handEl.innerHTML = '<p style="color:#fdf6e3;margin:4px 2px;font-weight:700;">手札がありません。ターン終了してください。</p>';
+          }
+
+          $("btn-oendturn").disabled = !(s.phase === "playing" && s.isMyTurn);
+          $("btn-osurrender").disabled = s.phase !== "playing";
+          var setLabel = (s.cardSet && s.cardSet.custom) ? "ホストの編集カードセットで対戦中" : "標準カードセットで対戦中";
+          $("oroom-note").textContent = "モード：オンライン対戦／ルームコード：" + (roomCode || "—") + "／" + setLabel;
+
+          // ログ
+          var ul = $("olog");
+          ul.innerHTML = "";
+          s.log.forEach(function (entry) {
+            var li = document.createElement("li");
+            if (entry.mark) li.className = "turn-mark";
+            li.textContent = entry.text;
+            ul.appendChild(li);
+          });
+          $("ologbox").scrollTop = $("ologbox").scrollHeight;
+        }
+      })();
+    </script>
+  </body>
+</html>
